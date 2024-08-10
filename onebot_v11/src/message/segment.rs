@@ -293,13 +293,13 @@ impl MessageSegment {
     pub fn custom_node(
         user_id: impl Into<String>,
         nickname: impl Into<String>,
-        content: impl Into<String>,
+        content: Vec<MessageSegment>,
     ) -> Self {
         MessageSegment::CustomNode {
             data: CustomNodeData {
                 user_id: user_id.into(),
                 nickname: nickname.into(),
-                content: content.into(),
+                content,
             },
         }
     }
@@ -357,19 +357,19 @@ impl MessageSegment {
 
 // 以下未标志收发的，均为收发均可
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct TextData {
     // 文本内容
     pub text: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FaceData {
     // QQ 表情的 ID
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ImageData {
     // 图片文件名, 使用收到的图片文件名直接发送
     // 绝对路径，例如 file:///C:\\Users\Richard\Pictures\1.png，格式使用 file URI
@@ -407,7 +407,7 @@ pub struct ImageData {
     pub timeout: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct RecordData {
     // 语音文件名, 使用收到的语音文件名直接发送
     // 以下为来自图片消息段的参考
@@ -441,7 +441,7 @@ pub struct RecordData {
     pub timeout: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct VideoData {
     // 视频文件名, 使用收到的视频文件名直接发送
     // 以下为来自图片消息段的参考
@@ -471,13 +471,13 @@ pub struct VideoData {
     pub timeout: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct AtData {
     // @的 QQ 号，all 表示全体成员
     pub qq: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct PokeData {
     // 类型，见 Mirai 的 PokeMessage 类
     pub r#type: String,
@@ -485,14 +485,14 @@ pub struct PokeData {
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct AnonymousData {
     // 可选，表示无法匿名时是否继续发送
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ignore: Option<u8>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ShareData {
     // URL
     pub url: String,
@@ -506,7 +506,7 @@ pub struct ShareData {
     pub image: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum ContactType {
     #[serde(rename = "group")]
     Group,
@@ -514,7 +514,7 @@ pub enum ContactType {
     QQ,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ContactData {
     // group 或 qq
     pub r#type: ContactType,
@@ -522,7 +522,7 @@ pub struct ContactData {
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct LocationData {
     // 纬度
     pub lat: String,
@@ -536,7 +536,7 @@ pub struct LocationData {
     pub content: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct MusicData {
     // 分别表示使用 QQ 音乐、网易云音乐、虾米音乐
     pub r#type: String,
@@ -544,7 +544,7 @@ pub struct MusicData {
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CustomMusicData {
     // 表示音乐自定义分享
     pub r#type: String,
@@ -562,49 +562,48 @@ pub struct CustomMusicData {
     pub image: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ReplyData {
     // 回复时引用的消息 ID
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ForwardData {
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct NodeData {
     // 转发的消息 ID
     id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CustomNodeData {
     // 发送者 QQ 号
     pub user_id: String,
     // 发送者昵称
     pub nickname: String,
 
-    // 未完成，这里应可以存储上面的各种可以转发的消息段类型
     // 消息内容，支持发送消息时的 message 数据类型
-    pub content: String,
+    pub content: Vec<MessageSegment>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct XmlData {
     // XML 内容
     pub data: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct JsonData {
     // JSON 内容
     pub data: String,
 }
 
 // onebot_v11某些变体的实现，如NapCat
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct MfaceData {
     pub summary: String,
     pub url: String,
@@ -614,7 +613,7 @@ pub struct MfaceData {
 }
 
 // onebot_v11某些变体的实现，如NapCat
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct File {
     // 收: 文件名称 发： 文件路径
     pub file: String,
