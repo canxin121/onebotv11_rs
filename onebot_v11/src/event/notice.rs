@@ -331,7 +331,6 @@ pub struct FriendInputStatusChangeEvent {
     pub notice_type: String, // 通知类型
     pub sub_type: String,    // 子类型
     pub status_text: String, // 输入状态文本
-    #[serde(rename = "eventType")]
     pub event_type: u8, // 事件类型
     pub user_id: i64,        // 好友 QQ 号
 }

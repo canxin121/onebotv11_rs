@@ -12,7 +12,7 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 use crate::api::payload::ApiPayload;
 use crate::api::resp::{ApiResp, ApiRespBuilder};
-use crate::traits::UrlSuffix as _;
+use crate::traits::EndPoint as _;
 use crate::Event;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
@@ -58,7 +58,7 @@ impl Into<String> for WsApiPayload {
 impl Into<WsApiPayload> for ApiPayload {
     fn into(self) -> WsApiPayload {
         WsApiPayload {
-            action: self.url_suffix(),
+            action: self.endpoint(),
             params: serde_json::to_value(self).unwrap(),
             echo: Some("123".to_string()),
         }

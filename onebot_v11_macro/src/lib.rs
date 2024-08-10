@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Ident, Lit};
 
 #[proc_macro_attribute]
-pub fn url_suffix(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn endpoint(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     let attr = parse_macro_input!(attr as Lit);
 
@@ -17,8 +17,8 @@ pub fn url_suffix(attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #input
 
-        impl UrlSuffix for #struct_name {
-            fn url_suffix(&self) -> String {
+        impl EndPoint for #struct_name {
+            fn endpoint(&self) -> String {
                 #suffix.to_string()
             }
         }
@@ -54,11 +54,11 @@ pub fn api_data_derive(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl UrlSuffix for #name {
-            fn url_suffix(&self) -> String {
+        impl EndPoint for #name {
+            fn endpoint(&self) -> String {
                 match &self {
                     #(
-                        #name::#variant_names(inner) => inner.url_suffix(),
+                        #name::#variant_names(inner) => inner.endpoint(),
                     )*
                 }
             }

@@ -1,3 +1,3 @@
-pub trait UrlSuffix {
-    fn url_suffix(&self) -> String;
+pub trait EndPoint {
+    fn endpoint(&self) -> String;
 }

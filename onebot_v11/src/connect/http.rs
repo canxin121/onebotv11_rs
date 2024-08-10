@@ -1,6 +1,6 @@
 use crate::{
     api::{payload::ApiPayload, resp::ApiRespData},
-    traits::UrlSuffix,
+    traits::EndPoint,
 };
 use reqwest::StatusCode;
 use serde_json::Value;
@@ -92,7 +92,7 @@ impl HttpConnect {
             "http://{}:{}/{}",
             self.config.host,
             self.config.port,
-            api_data.url_suffix()
+            api_data.endpoint()
         );
 
         let response_builder = self.client.post(url).json(&api_data);

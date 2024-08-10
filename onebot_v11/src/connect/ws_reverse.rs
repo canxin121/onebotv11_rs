@@ -5,7 +5,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use tracing::{warn,info};
 use crate::api::payload::ApiPayload;
 use crate::api::resp::{ApiResp, ApiRespBuilder};
-use crate::traits::UrlSuffix as _;
+use crate::traits::EndPoint as _;
 use crate::Event;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
@@ -36,7 +36,7 @@ impl Into<String> for WsApiPayload {
 impl Into<WsApiPayload> for ApiPayload {
     fn into(self) -> WsApiPayload {
         WsApiPayload {
-            action: self.url_suffix(),
+            action: self.endpoint(),
             params: serde_json::to_value(self).unwrap(),
             echo: Some("123".to_string()),
         }
