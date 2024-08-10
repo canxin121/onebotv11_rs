@@ -599,7 +599,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "futures-util",
- "onebot_v11_macro",
+ "onebot_v11_macro 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest",
  "serde",
  "serde_json",
@@ -612,6 +612,16 @@ dependencies = [
 [[package]]
 name = "onebot_v11_macro"
 version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "onebot_v11_macro"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c7c6250ca7222aad6ecc2fe58c9f9de33a94f447f794f09461403492b8ffa36"
 dependencies = [
  "quote",
  "syn",
