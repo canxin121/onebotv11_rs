@@ -300,7 +300,7 @@ impl MessageSegment {
         }
     }
 
-    // 无法自定义昵称和uinX
+    // llonebot/NapCat 无法自定义昵称和uin, Lagrange可以但是不能发送大于1mb的video
     pub fn custom_node(uin: i64, name: impl Into<String>, content: Vec<MessageSegment>) -> Self {
         MessageSegment::CustomNode {
             data: CustomNodeData {
