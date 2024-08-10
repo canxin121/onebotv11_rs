@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+    "onebot_v11_macro",
+    "onebot_v11",
+]
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"   # Optimize for size.
+codegen-units = 1
+panic = "abort"                 
+
