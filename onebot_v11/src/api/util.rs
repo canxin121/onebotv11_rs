@@ -59,6 +59,8 @@ impl ApiPayload {
             ApiPayload::SetGroupFileFolder(_) => 52,
             ApiPayload::DelGroupFile(_) => 53,
             ApiPayload::DelGroupFileFolder(_) => 54,
+            ApiPayload::SendGroupForwardMsg(_) => 55,
+            ApiPayload::SendPrivateForwardMsg(_) => 56,
         }
     }
 }
@@ -136,9 +138,7 @@ impl ApiRespData {
             47 => Ok(ApiRespData::GetRobotUinRangeResponse(
                 serde_json::from_value(data)?,
             )),
-            48 => Ok(ApiRespData::NoResponse(
-                serde_json::from_value(data)?,
-            )),
+            48 => Ok(ApiRespData::NoResponse(serde_json::from_value(data)?)),
             49 => Ok(ApiRespData::GetFriendsWithCategoryResponse(
                 serde_json::from_value(data)?,
             )),
@@ -155,6 +155,12 @@ impl ApiRespData {
                 data,
             )?)),
             54 => Ok(ApiRespData::DelGroupFileFolderResponse(
+                serde_json::from_value(data)?,
+            )),
+            55 => Ok(ApiRespData::SendGroupForwardMsgResponse(
+                serde_json::from_value(data)?,
+            )),
+            56 => Ok(ApiRespData::SendPrivateForwardMsgResponse(
                 serde_json::from_value(data)?,
             )),
             _ => Ok(ApiRespData::NoResponse(Some(()))),

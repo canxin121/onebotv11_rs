@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use serde_json::{json, Value};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -80,7 +80,7 @@ pub enum MessageSegment {
     #[serde(rename = "node")]
     Node { data: NodeData },
     // 合并转发自定义节点
-    #[serde(rename = "custom_node")]
+    #[serde(rename = "node")]
     CustomNode { data: CustomNodeData },
     // xml消息
     #[serde(rename = "xml")]
@@ -290,15 +290,22 @@ impl MessageSegment {
         }
     }
 
-    pub fn custom_node(
-        user_id: impl Into<String>,
-        nickname: impl Into<String>,
-        content: Vec<MessageSegment>,
-    ) -> Self {
+    pub fn easy_custom_node(content: Vec<MessageSegment>) -> Self {
         MessageSegment::CustomNode {
             data: CustomNodeData {
-                user_id: user_id.into(),
-                nickname: nickname.into(),
+                name: None,
+                uin: None,
+                content,
+            },
+        }
+    }
+
+    // 无法自定义昵称和uinX
+    pub fn custom_node(uin: i64, name: impl Into<String>, content: Vec<MessageSegment>) -> Self {
+        MessageSegment::CustomNode {
+            data: CustomNodeData {
+                name: Some(name.into()),
+                uin: Some(uin),
                 content,
             },
         }
@@ -573,20 +580,22 @@ pub struct ForwardData {
     pub id: String,
 }
 
+// 合并转发节点
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct NodeData {
     // 转发的消息 ID
     id: String,
 }
 
+// 自定义合并转发节点
+// 非obv11定义，而是适用于lagrand/gocq/llonebot/NapCat
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CustomNodeData {
-    // 发送者 QQ 号
-    pub user_id: String,
-    // 发送者昵称
-    pub nickname: String,
-
-    // 消息内容，支持发送消息时的 message 数据类型
+    // 自定义昵称(已失效)
+    pub name: Option<String>,
+    // 自定义qq号(已失效)
+    pub uin: Option<i64>,
+    // 自定义内容
     pub content: Vec<MessageSegment>,
 }
 
@@ -602,7 +611,7 @@ pub struct JsonData {
     pub data: String,
 }
 
-// onebot_v11某些变体的实现，如NapCat
+// onebot_v11某些变体的实现，如llonebot/NapCat
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct MfaceData {
     pub summary: String,
@@ -612,7 +621,7 @@ pub struct MfaceData {
     pub key: String,
 }
 
-// onebot_v11某些变体的实现，如NapCat
+// onebot_v11某些变体的实现，如llonebot/NapCat
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct File {
     // 收: 文件名称 发： 文件路径

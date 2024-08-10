@@ -114,6 +114,13 @@ pub enum ApiPayload {
     DelGroupFile(DelGroupFile),
     // 删除群文件夹
     DelGroupFileFolder(DelGroupFileFolder),
+
+    // NapCat gocq拓展
+
+    // 合并转发消息给群聊
+    SendGroupForwardMsg(SendGroupForwardMsg),
+    // 合并转发消息给好友
+    SendPrivateForwardMsg(SendPrivateForwardMsg),
 }
 
 // 发送私聊消息结构体
@@ -533,4 +540,22 @@ pub struct DelGroupFile {
 pub struct DelGroupFileFolder {
     pub group_id: i64,     // 群号
     pub folder_id: String, // 文件夹 ID
+}
+
+// NapCat gocq拓展
+
+// 合并转发消息给群聊
+#[url_suffix("send_group_forward_msg")]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct SendGroupForwardMsg {
+    pub group_id: i64,                 // 群号
+    pub messages: Vec<MessageSegment>, // 要发送的消息内容
+}
+
+// 合并转发消息给好友
+#[url_suffix("send_private_forward_msg")]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct SendPrivateForwardMsg {
+    pub user_id: i64,                  // 对方 QQ 号
+    pub messages: Vec<MessageSegment>, // 要发送的消息内容
 }

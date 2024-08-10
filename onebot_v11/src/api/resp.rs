@@ -77,6 +77,13 @@ pub enum ApiRespData {
     DelGroupFileResponse(DelGroupFileResponse),
     // 删除群文件夹
     DelGroupFileFolderResponse(CommonClientResponseResult),
+
+    // NapCat Gocq 扩展
+
+    // 向群发送合并转发消息
+    SendGroupForwardMsgResponse(SendGroupForwardMsgResponse),
+    // 向私聊发送合并转发消息
+    SendPrivateForwardMsgResponse(SendPrivateForwardMsgResponse),
 }
 
 impl Serialize for ApiRespData {
@@ -119,6 +126,9 @@ impl Serialize for ApiRespData {
             ApiRespData::DelGroupFileFolderResponse(data) => data.serialize(serializer),
             ApiRespData::GetRobotUinRangeResponse(data) => data.serialize(serializer),
             ApiRespData::GetGroupFileCountResponse(data) => data.serialize(serializer),
+            // NapCat Gocq 扩展
+            ApiRespData::SendGroupForwardMsgResponse(data) => data.serialize(serializer),
+            ApiRespData::SendPrivateForwardMsgResponse(data) => data.serialize(serializer),
         }
     }
 }
@@ -670,4 +680,18 @@ pub struct TransGroupFileResult {
     pub result: CommonClientResponseResult,
     #[serde(rename = "successFileIdList")]
     pub success_file_id_list: Vec<String>,
+}
+
+// NapCat Gocq 扩展
+
+// 向群发送合并转发消息
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct SendGroupForwardMsgResponse {
+    pub message_id: i64,
+}
+
+// 向私聊发送合并转发消息
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct SendPrivateForwardMsgResponse {
+    pub message_id: i64,
 }
