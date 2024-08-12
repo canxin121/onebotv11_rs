@@ -210,7 +210,7 @@ impl MessageSegment {
                 file: file.into(),
                 name: name.map(|n| n.into()),
                 path: String::with_capacity(0),
-                url: String::with_capacity(0),
+                url: None,
                 file_id: String::with_capacity(0),
                 file_size: String::with_capacity(0),
             },
@@ -637,7 +637,7 @@ pub struct File {
     // 收
     // 文件 URL
     #[serde(skip_serializing)]
-    pub url: String,
+    pub url: Option<String>,
     // 收
     // 文件 ID
     #[serde(skip_serializing)]
