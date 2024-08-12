@@ -6,9 +6,9 @@ pub enum Notice {
     GroupFileUpload(GroupFileUploadEvent),
     // 群管理员变动事件
     GroupAdminChange(GroupAdminChangeEvent),
-    // 群文件减少事件
+    // 群成员减少事件
     GroupMemberDecrease(GroupMemberDecreaseEvent),
-    // 群文件增加事件
+    // 群成员增加事件
     GroupMemberIncrease(GroupMemberIncreaseEvent),
     // 群禁言事件
     GroupBan(GroupBanEvent),
