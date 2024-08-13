@@ -9,7 +9,7 @@ use serde_json::Value;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, mpsc, Mutex, RwLock};
 use tokio::time::timeout;
 use tokio_tungstenite::accept_hdr_async;
 use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
@@ -61,28 +61,28 @@ impl Default for ReverseWsConfig {
 
 pub struct ReverseWsConnect {
     pub config: ReverseWsConfig,
-    pub r#type: Option<WsType>,
-    pub r#bot_id: Option<String>,
-    ws_read: Arc<Mutex<SplitStream<WebSocketStream<TcpStream>>>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    event_sender: Arc<Mutex<broadcast::Sender<Event>>>,
-    api_response_sender: Arc<Mutex<mpsc::Sender<ApiRespBuilder>>>,
-    api_response_receiver: Arc<Mutex<mpsc::Receiver<ApiRespBuilder>>>,
+    pub r#type: RwLock<Option<WsType>>,
+    pub r#bot_id: RwLock<Option<String>>,
+    ws_read: Mutex<SplitStream<WebSocketStream<TcpStream>>>,
+    ws_write: Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>,
+    event_sender: broadcast::Sender<Event>,
+    api_response_sender: mpsc::Sender<ApiRespBuilder>,
+    api_response_receiver: Mutex<mpsc::Receiver<ApiRespBuilder>>,
 }
 
 impl ReverseWsConnect {
     pub async fn new(config: ReverseWsConfig) -> Result<Arc<Self>, anyhow::Error> {
-        let (ws_read, ws_write) = Self::connect(&config).await?;
+        let ((ws_read, ws_write), bot_id, r#type) = Self::connect(&config).await?;
         let (api_response_sender, api_response_receiver) = mpsc::channel(100);
         let self_ = Arc::new(Self {
             config,
-            r#type: None,
-            r#bot_id: None,
-            ws_read: Arc::new(Mutex::new(ws_read)),
-            ws_write: Arc::new(Mutex::new(ws_write)),
-            event_sender: Arc::new(Mutex::new(broadcast::channel(100).0)),
-            api_response_sender: Arc::new(Mutex::new(api_response_sender)),
-            api_response_receiver: Arc::new(Mutex::new(api_response_receiver)),
+            r#type: RwLock::new(r#type),
+            r#bot_id: RwLock::new(bot_id),
+            ws_read: Mutex::new(ws_read),
+            ws_write: Mutex::new(ws_write),
+            event_sender: broadcast::channel(100).0,
+            api_response_sender,
+            api_response_receiver: Mutex::new(api_response_receiver),
         });
 
         self_.clone().start_event_listener();
@@ -94,17 +94,22 @@ impl ReverseWsConnect {
         config: &ReverseWsConfig,
     ) -> Result<
         (
-            SplitStream<WebSocketStream<TcpStream>>,
-            SplitSink<WebSocketStream<TcpStream>, Message>,
+            (
+                SplitStream<WebSocketStream<TcpStream>>,
+                SplitSink<WebSocketStream<TcpStream>, Message>,
+            ),
+            Option<String>,
+            Option<WsType>,
         ),
         anyhow::Error,
     > {
         loop {
             let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
+
+            let mut bot_id = None;
+            let mut r#type = None;
             match listener.accept().await {
                 Ok((stream, _)) => {
-                    let mut bot_id = None;
-                    let mut r#type = None;
                     match accept_hdr_async(stream, |req: &Request, mut resp: Response| {
                         let path = req.uri().path().trim_end_matches('/');
                         info!(
@@ -123,6 +128,7 @@ impl ReverseWsConnect {
                         r#type = headers
                             .get("X-Client-Role")
                             .map(|v| WsType::from_str(&v.to_str().unwrap_or("").to_string()));
+
                         Ok(resp)
                     })
                     .await
@@ -134,7 +140,7 @@ impl ReverseWsConnect {
                                 "[ReverseWsConnect::connect] Connected, bot_id: {:?}, type: {:?}",
                                 bot_id, r#type
                             );
-                            return Ok((read, write));
+                            return Ok(((read, write), bot_id, r#type));
                         }
                         Err(e) => {
                             warn!(
@@ -155,15 +161,12 @@ impl ReverseWsConnect {
     }
 
     fn start_event_listener(self: Arc<Self>) {
-        let read = Arc::clone(&self.ws_read);
-        let event_sender = Arc::clone(&self.event_sender);
-        let api_response_sender = Arc::clone(&self.api_response_sender);
         let self_clone = Arc::clone(&self);
 
         tokio::spawn(async move {
             {
-                let mut read = read.lock().await;
-                let sender = event_sender.lock().await;
+                let mut read = self.ws_read.lock().await;
+                let sender = self.event_sender.clone();
 
                 while let Some(msg) = read.next().await {
                     match msg {
@@ -172,11 +175,8 @@ impl ReverseWsConnect {
                             match serde_json::from_str::<Event>(&msg_string) {
                                 Ok(event) => match event {
                                     Event::ApiRespBuilder(api_resp_builder) => {
-                                        if let Err(e) = api_response_sender
-                                            .lock()
-                                            .await
-                                            .send(api_resp_builder)
-                                            .await
+                                        if let Err(e) =
+                                            self.api_response_sender.send(api_resp_builder).await
                                         {
                                             warn!("Error sending ApiRespBuilder: {}", e);
                                         }
@@ -200,10 +200,14 @@ impl ReverseWsConnect {
             }
             warn!("WsMessage stream ended, maybe the connection is closed");
 
-            if let Ok((read, write)) = Self::connect(&self_clone.config).await {
+            if let Ok(((read, write), bot_id, r#type)) = Self::connect(&self_clone.config).await {
                 {
                     *self_clone.ws_read.lock().await = read;
                     *self_clone.ws_write.lock().await = write;
+                }
+                {
+                    *self_clone.r#bot_id.write().await = bot_id;
+                    *self_clone.r#type.write().await = r#type;
                 }
                 self_clone.start_event_listener();
             }
@@ -211,9 +215,7 @@ impl ReverseWsConnect {
     }
 
     pub async fn subscribe(&self) -> broadcast::Receiver<Event> {
-        let event_sender = self.event_sender.clone();
-        let sender = event_sender.lock().await;
-        sender.subscribe()
+        self.event_sender.subscribe()
     }
 
     pub async fn call_api(self: Arc<Self>, api_data: ApiPayload) -> Result<ApiResp, anyhow::Error> {
@@ -236,7 +238,6 @@ impl ReverseWsConnect {
         .ok_or(anyhow::anyhow!(
             "[WsServer.call_api] Error receiving API response, maybe the API response channel is closed or timeout"
         ))?;
-        println!("resp_builder: {}", resp_builder.data.to_string());
         Ok(resp_builder.build(resp_type)?)
     }
 }
@@ -260,7 +261,6 @@ mod test_reverse_ws_connect {
         let mut subscriber = ws_conn.subscribe().await;
 
         while let Ok(event) = subscriber.recv().await {
-            println!("Received event: {:#?}", event);
             match event {
                 Event::Notice(Notice::GroupCardChange(event)) => {
                     let ws_conn = Arc::clone(&ws_conn);

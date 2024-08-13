@@ -67,11 +67,11 @@ impl Into<WsApiPayload> for ApiPayload {
 
 pub struct WsConnect {
     pub config: WsConfig,
-    ws_read: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
-    ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-    event_sender: Arc<Mutex<broadcast::Sender<Event>>>,
-    api_response_sender: Arc<Mutex<mpsc::Sender<ApiRespBuilder>>>,
-    api_response_receiver: Arc<Mutex<mpsc::Receiver<ApiRespBuilder>>>,
+    ws_read: Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>,
+    ws_write: Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>,
+    event_sender: broadcast::Sender<Event>,
+    api_response_sender: mpsc::Sender<ApiRespBuilder>,
+    api_response_receiver: Mutex<mpsc::Receiver<ApiRespBuilder>>,
 }
 
 impl WsConnect {
@@ -80,11 +80,11 @@ impl WsConnect {
         let (api_response_sender, api_response_receiver) = mpsc::channel(100);
         let self_ = Arc::new(Self {
             config: wsconfig.clone(),
-            ws_read: Arc::new(Mutex::new(ws_read)),
-            ws_write: Arc::new(Mutex::new(ws_write)),
-            event_sender: Arc::new(Mutex::new(broadcast::channel(100).0)),
-            api_response_sender: Arc::new(Mutex::new(api_response_sender)),
-            api_response_receiver: Arc::new(Mutex::new(api_response_receiver)),
+            ws_read: Mutex::new(ws_read),
+            ws_write: Mutex::new(ws_write),
+            event_sender: broadcast::channel(100).0,
+            api_response_sender: api_response_sender,
+            api_response_receiver: Mutex::new(api_response_receiver),
         });
 
         self_.clone().start_event_listener();
@@ -127,15 +127,11 @@ impl WsConnect {
     }
 
     fn start_event_listener(self: Arc<Self>) {
-        let read = Arc::clone(&self.ws_read);
-        let event_sender = Arc::clone(&self.event_sender);
-        let api_response_sender = Arc::clone(&self.api_response_sender);
         let self_clone = Arc::clone(&self);
 
         tokio::spawn(async move {
             {
-                let mut read = read.lock().await;
-                let sender = event_sender.lock().await;
+                let mut read = self.ws_read.lock().await;
 
                 while let Some(msg) = read.next().await {
                     match msg {
@@ -144,17 +140,14 @@ impl WsConnect {
                             match serde_json::from_str::<Event>(&msg_string) {
                                 Ok(event) => match event {
                                     Event::ApiRespBuilder(api_resp_builder) => {
-                                        if let Err(e) = api_response_sender
-                                            .lock()
-                                            .await
-                                            .send(api_resp_builder)
-                                            .await
+                                        if let Err(e) =
+                                            self.api_response_sender.send(api_resp_builder).await
                                         {
                                             warn!("Error sending ApiRespBuilder: {}", e);
                                         }
                                     }
                                     other => {
-                                        if let Err(e) = sender.send(other) {
+                                        if let Err(e) = self.event_sender.send(other) {
                                             warn!("Error sending Event: {}", e);
                                         }
                                     }
@@ -180,9 +173,7 @@ impl WsConnect {
     }
 
     pub async fn subscribe(&self) -> broadcast::Receiver<Event> {
-        let event_sender = self.event_sender.clone();
-        let sender = event_sender.lock().await;
-        sender.subscribe()
+        self.event_sender.subscribe()
     }
 
     pub async fn call_api(self: Arc<Self>, api_data: ApiPayload) -> Result<ApiResp, anyhow::Error> {
