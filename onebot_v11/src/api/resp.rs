@@ -41,11 +41,11 @@ pub enum ApiRespData {
     GetForwardMsgResponse(GetForwardMsgResponse),
     GetLoginInfoResponse(GetLoginInfoResponse),
     GetStrangerInfoResponse(GetStrangerInfoResponse),
-    GetFriendListResponse(GetFriendListResponse),
+    GetFriendListResponse(Vec<GetFriendListResponseItem>),
     GetGroupInfoResponse(GetGroupInfoResponse),
-    GetGroupListResponse(GetGroupListResponse),
+    GetGroupListResponse(Vec<GetGroupListResponseItem>),
     GetGroupMemberInfoResponse(GetGroupMemberInfoResponse),
-    GetGroupMemberListResponse(GetGroupMemberListResponse),
+    GetGroupMemberListResponse(Vec<GetGroupMemberListResponseItem>),
     GetGroupHonorInfoResponse(GetGroupHonorInfoResponse),
     GetCookiesResponse(GetCookiesResponse),
     GetCsrfTokenResponse(GetCsrfTokenResponse),
@@ -137,21 +137,21 @@ impl Serialize for ApiRespData {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SendPrivateMsgResponse {
     /// 消息 ID
-    pub message_id: i32,
+    pub message_id: i64,
 }
 
 /// 结构体表示发送群消息的响应
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SendGroupMsgResponse {
     /// 消息 ID
-    pub message_id: i32,
+    pub message_id: i64,
 }
 
 /// 结构体表示发送消息的响应
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SendMsgResponse {
     /// 消息 ID
-    pub message_id: i32,
+    pub message_id: i64,
 }
 
 /// 结构体表示撤回消息的响应
@@ -162,22 +162,22 @@ pub struct DeleteMsgResponse;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetMsgResponse {
     /// 发送时间
-    pub time: i32,
+    pub time: i64,
     /// 消息类型
     pub message_type: String,
     /// 消息 ID
-    pub message_id: i32,
+    pub message_id: i64,
     /// 消息真实 ID
-    pub real_id: i32,
+    pub real_id: i64,
     /// 发送人信息
-    pub sender: CommonMessageSender,
+    pub sender: MessageSender,
     /// 消息内容
-    pub message: MessageSegment,
+    pub message: Vec<MessageSegment>,
 }
 
 /// 结构体表示消息发送者的公共信息
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct CommonMessageSender {
+pub struct MessageSender {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// 发送者 QQ 号
     pub user_id: Option<i64>,
@@ -233,12 +233,12 @@ pub struct GetStrangerInfoResponse {
     /// 性别
     pub sex: String,
     /// 年龄
-    pub age: i32,
+    pub age: i64,
 }
 
 /// 结构体表示获取好友列表的响应
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct GetFriendListResponse {
+pub struct GetFriendListResponseItem {
     /// QQ 号
     pub user_id: i64,
     /// 昵称
@@ -255,22 +255,22 @@ pub struct GetGroupInfoResponse {
     /// 群名称
     pub group_name: String,
     /// 成员数
-    pub member_count: i32,
+    pub member_count: i64,
     /// 最大成员数（群容量）
-    pub max_member_count: i32,
+    pub max_member_count: i64,
 }
 
 /// 结构体表示获取群列表的响应
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct GetGroupListResponse {
+pub struct GetGroupListResponseItem {
     /// 群号
     pub group_id: i64,
     /// 群名称
     pub group_name: String,
     /// 成员数
-    pub member_count: i32,
+    pub member_count: i64,
     /// 最大成员数（群容量）
-    pub max_member_count: i32,
+    pub max_member_count: i64,
 }
 
 /// 结构体表示获取群成员信息的响应
@@ -287,13 +287,13 @@ pub struct GetGroupMemberInfoResponse {
     /// 性别
     pub sex: String,
     /// 年龄
-    pub age: i32,
+    pub age: i64,
     /// 地区
     pub area: String,
     /// 加群时间戳
-    pub join_time: i32,
+    pub join_time: i64,
     /// 最后发言时间戳
-    pub last_sent_time: i32,
+    pub last_sent_time: i64,
     /// 成员等级
     pub level: String,
     /// 角色
@@ -303,14 +303,14 @@ pub struct GetGroupMemberInfoResponse {
     /// 专属头衔
     pub title: String,
     /// 专属头衔过期时间戳
-    pub title_expire_time: i32,
+    pub title_expire_time: i64,
     /// 是否允许修改群名片
     pub card_changeable: bool,
 }
 
 /// 结构体表示获取群成员列表的响应
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct GetGroupMemberListResponse {
+pub struct GetGroupMemberListResponseItem {
     /// 群号
     pub group_id: i64,
     /// QQ 号
@@ -322,11 +322,11 @@ pub struct GetGroupMemberListResponse {
     /// 性别
     pub sex: String,
     /// 年龄
-    pub age: i32,
+    pub age: i64,
     /// 加群时间戳
-    pub join_time: i32,
+    pub join_time: i64,
     /// 最后发言时间戳
-    pub last_sent_time: i32,
+    pub last_sent_time: i64,
     /// 成员等级
     pub level: String,
     /// 角色
@@ -336,7 +336,7 @@ pub struct GetGroupMemberListResponse {
     /// 专属头衔
     pub title: String,
     /// 专属头衔过期时间戳
-    pub title_expire_time: i32,
+    pub title_expire_time: i64,
     /// 是否允许修改群名片
     pub card_changeable: bool,
 }
@@ -370,7 +370,7 @@ pub struct TalkativeInfo {
     /// 头像 URL
     pub avatar: String,
     /// 持续天数
-    pub day_count: i32,
+    pub day_count: i64,
 }
 
 /// 结构体表示群荣誉信息
@@ -397,7 +397,7 @@ pub struct GetCookiesResponse {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetCsrfTokenResponse {
     /// CSRF Token
-    pub token: i32,
+    pub token: i64,
 }
 
 /// 结构体表示获取 QQ 相关接口凭证的响应
@@ -406,7 +406,7 @@ pub struct GetCredentialsResponse {
     /// Cookies
     pub cookies: String,
     /// CSRF Token
-    pub csrf_token: i32,
+    pub csrf_token: i64,
 }
 
 /// 结构体表示获取语音记录的响应
@@ -484,7 +484,7 @@ pub struct InvitedRequest {
     // 是否处理
     pub checked: bool,
     // 0: 未处理 other: 处理者qq
-    pub actor: i32,
+    pub actor: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -502,7 +502,7 @@ pub struct JoinRequest {
     // 是否处理
     pub checked: bool,
     // 0: 未处理 other: 处理者qq
-    pub actor: i32,
+    pub actor: i64,
 }
 
 // 下载群文件或私聊文件

@@ -245,7 +245,7 @@ pub struct GroupBanEvent {
     pub group_id: i64,       // 群号
     pub operator_id: i64,    // 操作者 QQ 号
     pub user_id: i64,        // 被禁言 QQ 号
-    pub duration: i64,       // 禁言时长，单位秒
+    pub duration: u64,       // 禁言时长，单位秒
 }
 
 // 好友添加事件
@@ -331,7 +331,7 @@ pub struct FriendInputStatusChangeEvent {
     pub notice_type: String, // 通知类型
     pub sub_type: String,    // 子类型
     pub status_text: String, // 输入状态文本
-    pub event_type: u8, // 事件类型
+    pub event_type: u8,      // 事件类型
     pub user_id: i64,        // 好友 QQ 号
 }
 
@@ -374,7 +374,7 @@ pub enum EssenseMessageChangeType {
 
 // 精华消息事件
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct GroupEssenceMessageChangeEvent {
+pub struct      GroupEssenceMessageChangeEvent {
     pub time: i64,                          // 事件发生的时间戳
     pub self_id: i64,                       // 收到事件的机器人 QQ 号
     pub post_type: String,                  // 上报类型

@@ -1,8 +1,3 @@
-use serde_json::Value;
-use std::sync::Arc;
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{broadcast, mpsc, Mutex};
-use tracing::{warn,info};
 use crate::api::payload::ApiPayload;
 use crate::api::resp::{ApiResp, ApiRespBuilder};
 use crate::traits::EndPoint as _;
@@ -10,12 +5,17 @@ use crate::Event;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::{broadcast, mpsc, Mutex};
 use tokio::time::timeout;
 use tokio_tungstenite::accept_hdr_async;
 use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::WebSocketStream;
+use tracing::{info, warn};
 
 use super::WsType;
 
@@ -188,25 +188,17 @@ impl ReverseWsConnect {
                                     }
                                 },
                                 Err(e) => {
-                                    warn!(
-                                    "Error parsing Event: {}, Raw: {}",
-                                    e, msg_string
-                                );
+                                    warn!("Error parsing Event: {}, Raw: {}", e, msg_string);
                                 }
                             }
                         }
                         Err(e) => {
-                            warn!(
-                                "Error receiving WsMessage: {}",
-                                e
-                            );
+                            warn!("Error receiving WsMessage: {}", e);
                         }
                     }
                 }
             }
-            warn!(
-                "WsMessage stream ended, maybe the connection is closed"
-            );
+            warn!("WsMessage stream ended, maybe the connection is closed");
 
             if let Ok((read, write)) = Self::connect(&self_clone.config).await {
                 {
@@ -244,6 +236,7 @@ impl ReverseWsConnect {
         .ok_or(anyhow::anyhow!(
             "[WsServer.call_api] Error receiving API response, maybe the API response channel is closed or timeout"
         ))?;
+        println!("resp_builder: {}", resp_builder.data.to_string());
         Ok(resp_builder.build(resp_type)?)
     }
 }
@@ -262,7 +255,7 @@ mod test_reverse_ws_connect {
     #[tokio::test]
     async fn test() {
         tracing_subscriber::fmt::init();
-        
+
         let ws_conn = ReverseWsConnect::new(Default::default()).await.unwrap();
         let mut subscriber = ws_conn.subscribe().await;
 

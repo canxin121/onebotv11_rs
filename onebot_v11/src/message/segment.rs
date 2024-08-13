@@ -584,7 +584,7 @@ pub struct ForwardData {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct NodeData {
     // 转发的消息 ID
-    id: String,
+    pub id: String,
 }
 
 // 自定义合并转发节点

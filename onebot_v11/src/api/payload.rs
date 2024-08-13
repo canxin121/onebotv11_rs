@@ -164,14 +164,14 @@ pub struct SendMsg {
 #[endpoint("delete_msg")]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DeleteMsg {
-    pub message_id: i32, // 消息 ID
+    pub message_id: i64, // 消息 ID
 }
 
 // 获取消息结构体
 #[endpoint("get_msg")]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetMsg {
-    pub message_id: i32, // 消息 ID
+    pub message_id: i64, // 消息 ID
 }
 
 // 获取合并转发消息结构体
@@ -186,7 +186,7 @@ pub struct GetForwardMsg {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SendLike {
     pub user_id: i64, // 对方 QQ 号
-    pub times: i32,   // 赞的次数，每个好友每天最多 10 次
+    pub times: i64,   // 赞的次数，每个好友每天最多 10 次
 }
 
 // 群组踢人结构体
@@ -204,7 +204,7 @@ pub struct SetGroupKick {
 pub struct SetGroupBan {
     pub group_id: i64, // 群号
     pub user_id: i64,  // 要禁言的 QQ 号
-    pub duration: i32, // 禁言时长，单位秒，0 表示取消禁言
+    pub duration: i64, // 禁言时长，单位秒，0 表示取消禁言
 }
 
 // 群组匿名用户禁言结构体
@@ -214,7 +214,7 @@ pub struct SetGroupAnonymousBan {
     pub group_id: i64,                  // 群号
     pub anonymous: Option<Anonymous>,   // 可选，要禁言的匿名用户对象
     pub anonymous_flag: Option<String>, // 可选，要禁言的匿名用户的 flag
-    pub duration: i32,                  // 禁言时长，单位秒，无法取消匿名用户禁言
+    pub duration: i64,                  // 禁言时长，单位秒，无法取消匿名用户禁言
 }
 
 // 群组全员禁言结构体
@@ -274,26 +274,28 @@ pub struct SetGroupSpecialTitle {
     pub group_id: i64,         // 群号
     pub user_id: i64,          // 要设置的 QQ 号
     pub special_title: String, // 专属头衔，不填或空字符串表示删除专属头衔
-    pub duration: i32,         // 专属头衔有效期，单位秒，-1 表示永久，此项似乎没有效果，有待测试
+    pub duration: i64,         // 专属头衔有效期，单位秒，-1 表示永久，此项似乎没有效果，有待测试
 }
 
 // 处理加好友请求结构体
 #[endpoint("set_friend_add_request")]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SetFriendAddRequest {
-    pub flag: String,   // 加好友请求的 flag
-    pub approve: bool,  // 是否同意请求
-    pub remark: String, // 添加后的好友备注（仅在同意时有效）
+    pub flag: String,  // 加好友请求的 flag
+    pub approve: bool, // 是否同意请求
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remark: Option<String>, // 添加后的好友备注（仅在同意时有效）
 }
 
 // 处理加群请求／邀请结构体
-#[endpoint("set_group_add_request")]
+#[endpoint("    set_group_add_request")]                                    
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SetGroupAddRequest {
     pub flag: String,     // 加群请求的 flag
     pub sub_type: String, // 请求类型（add 或 invite）
     pub approve: bool,    // 是否同意请求／邀请
-    pub reason: String,   // 拒绝理由（仅在拒绝时有效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,   // 拒绝理由（仅在拒绝时有效）
 }
 
 // 获取登录号信息结构体
@@ -410,7 +412,7 @@ pub struct GetVersionInfo {}
 #[endpoint("set_restart")]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SetRestart {
-    pub delay: i32, // 要延迟的毫秒数
+    pub delay: i64, // 要延迟的毫秒数
 }
 
 // 清理缓存结构体
