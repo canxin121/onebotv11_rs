@@ -1,6 +1,6 @@
 [package]
 name = "onebot_v11"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "OneBot v11 with NapCat/llonebot extension"
 license = "MIT OR Apache-2.0"
