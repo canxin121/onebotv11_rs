@@ -1,6 +1,5 @@
-use serde_json::Value;
 use std::sync::Arc;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, Mutex};
 use tracing::{info, warn};
 
 use futures_util::stream::{SplitSink, SplitStream};
@@ -12,12 +11,11 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 use crate::api::payload::ApiPayload;
 use crate::api::resp::{ApiResp, ApiRespBuilder};
-use crate::traits::EndPoint as _;
 use crate::Event;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
-use super::WsType;
+use super::{get_resp_builder, WsApiPayload, WsType};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WsConfig {
@@ -42,49 +40,24 @@ impl Default for WsConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct WsApiPayload {
-    pub action: String,
-    pub params: Value,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub echo: Option<String>,
-}
-impl Into<String> for WsApiPayload {
-    fn into(self) -> String {
-        serde_json::to_string(&self).unwrap()
-    }
-}
-
-impl Into<WsApiPayload> for ApiPayload {
-    fn into(self) -> WsApiPayload {
-        WsApiPayload {
-            action: self.endpoint(),
-            params: serde_json::to_value(self).unwrap(),
-            echo: Some("123".to_string()),
-        }
-    }
-}
-
 pub struct WsConnect {
     pub config: WsConfig,
     ws_read: Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>,
     ws_write: Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>,
     event_sender: broadcast::Sender<Event>,
-    api_response_sender: mpsc::Sender<ApiRespBuilder>,
-    api_response_receiver: Mutex<mpsc::Receiver<ApiRespBuilder>>,
+    api_response_sender: broadcast::Sender<ApiRespBuilder>,
 }
 
 impl WsConnect {
     pub async fn new(wsconfig: WsConfig) -> Result<Arc<Self>, anyhow::Error> {
         let (ws_write, ws_read) = Self::connect(&wsconfig).await;
-        let (api_response_sender, api_response_receiver) = mpsc::channel(100);
+        let (api_response_sender, _) = broadcast::channel(100);
         let self_ = Arc::new(Self {
             config: wsconfig.clone(),
             ws_read: Mutex::new(ws_read),
             ws_write: Mutex::new(ws_write),
             event_sender: broadcast::channel(100).0,
-            api_response_sender: api_response_sender,
-            api_response_receiver: Mutex::new(api_response_receiver),
+            api_response_sender,
         });
 
         self_.clone().start_event_listener();
@@ -141,7 +114,7 @@ impl WsConnect {
                                 Ok(event) => match event {
                                     Event::ApiRespBuilder(api_resp_builder) => {
                                         if let Err(e) =
-                                            self.api_response_sender.send(api_resp_builder).await
+                                            self.api_response_sender.send(api_resp_builder)
                                         {
                                             warn!("Error sending ApiRespBuilder: {}", e);
                                         }
@@ -178,17 +151,17 @@ impl WsConnect {
 
     pub async fn call_api(self: Arc<Self>, api_data: ApiPayload) -> Result<ApiResp, anyhow::Error> {
         let resp_type = api_data.to_resp_type();
-
+        let ws_api_data: WsApiPayload = api_data.into();
+        let echo = ws_api_data.echo.clone();
+        let ws_api_string: String = serde_json::to_string(&ws_api_data)?;
         {
-            let ws_api_data: WsApiPayload = api_data.into();
-            let ws_api_string: String = ws_api_data.into();
             let mut write = self.ws_write.lock().await;
             write.send(Message::Text(ws_api_string)).await?;
         }
-
+        let subscriber = self.api_response_sender.subscribe();
         let resp_builder = timeout(
             Duration::from_secs(30),
-            self.api_response_receiver.lock().await.recv(),
+            get_resp_builder(subscriber, echo)
         )
         .await
         .ok()
@@ -197,107 +170,5 @@ impl WsConnect {
             "[WsConnect.call_api] Error receiving API response, maybe the API response channel is closed or timeout"
         ))?;
         Ok(resp_builder.build(resp_type)?)
-    }
-}
-
-#[cfg(test)]
-mod test_ws_connect {
-    use std::sync::Arc;
-
-    use crate::{
-        api::payload::{ApiPayload, SendGroupMsg},
-        connect::{
-            ws::{WsConfig, WsConnect},
-            WsType,
-        },
-        event::message::Message,
-        message::segment::MfaceData,
-        Event, MessageSegment,
-    };
-
-    #[tokio::test]
-    async fn test_ws_connect() {
-        tracing_subscriber::fmt::init();
-        let ws_config = WsConfig {
-            r#type: WsType::Universal,
-            host: "127.0.0.1".to_string(),
-            port: 3001,
-            access_token: None,
-            bot_id: Some("261253615".to_string()),
-            bot_nick_name: Some("jinx".to_string()),
-        };
-        let ws_conn = WsConnect::new(ws_config).await.unwrap();
-        let mut subscriber = ws_conn.subscribe().await;
-        while let Ok(event) = subscriber.recv().await {
-            match event {
-                Event::Message(Message::GroupMessage(msg)) => {
-                    let group_id = msg.group_id;
-                    let message_id = msg.message_id;
-                    if msg.sender.user_id == Some(1969730106) {
-                        for message in msg.message {
-                            if let MessageSegment::Mface {
-                                data: MfaceData { url, .. },
-                            } = message
-                            {
-                                let ws_conn = Arc::clone(&ws_conn);
-                                tokio::spawn(async move {
-                                    let _ = ws_conn
-                                        .clone()
-                                        .call_api(ApiPayload::SendGroupMsg(SendGroupMsg {
-                                            group_id,
-                                            message: vec![MessageSegment::text(format!(
-                                                "收到Mface消息,url: {}，开始发送图片消息",
-                                                url
-                                            ))],
-                                            auto_escape: true,
-                                        }))
-                                        .await;
-                                    let payload = ApiPayload::SendGroupMsg(SendGroupMsg {
-                                        group_id,
-                                        message: vec![MessageSegment::easy_image(
-                                            url,
-                                            Some("Mface Image"),
-                                        )],
-                                        auto_escape: true,
-                                    });
-                                    let _ = ws_conn
-                                        .clone()
-                                        .call_api(ApiPayload::SendGroupMsg(SendGroupMsg {
-                                            group_id,
-                                            message: vec![MessageSegment::text(format!(
-                                                "发送图片消息, json string: {}",
-                                                serde_json::to_string_pretty(&payload).unwrap()
-                                            ))],
-                                            auto_escape: true,
-                                        }))
-                                        .await;
-
-                                    let _ = ws_conn.call_api(payload).await;
-                                });
-                            } else if let MessageSegment::File { data: file } = message {
-                                let ws_conn = Arc::clone(&ws_conn);
-                                tokio::spawn(async move {
-                                    let _ = ws_conn
-                                        .clone()
-                                        .call_api(ApiPayload::SendGroupMsg(SendGroupMsg {
-                                            group_id,
-                                            message: vec![
-                                                MessageSegment::text(format!(
-                                                    "File消息: {:#?}",
-                                                    file
-                                                )),
-                                                MessageSegment::reply(message_id.to_string()),
-                                            ],
-                                            auto_escape: true,
-                                        }))
-                                        .await;
-                                });
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
     }
 }

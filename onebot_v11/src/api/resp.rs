@@ -8,7 +8,8 @@ pub struct ApiResp {
     pub status: String,
     pub retcode: u32,
     pub data: ApiRespData,
-    pub echo: Option<String>,
+    #[serde(default)]
+    pub echo: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -17,8 +18,10 @@ pub struct ApiRespBuilder {
     pub retcode: u32,
     // ApiRespData，但是无法直接序列化，提供一个type_id
     pub data: Value,
-    pub echo: Option<String>,
+    #[serde(default)]
+    pub echo: String,
 }
+
 impl ApiRespBuilder {
     pub fn build(self, resp_type: u8) -> Result<ApiResp, anyhow::Error> {
         let data = ApiRespData::from_resp_type(resp_type, self.data)?;

@@ -17,4 +17,5 @@ tokio-tungstenite = "0.23.1"
 futures-util = "0.3.30"
 tracing = { version = "0.1.40", features = ["log"] }
 tracing-subscriber = "0.3.18"
+rand = "0.8.5"
 

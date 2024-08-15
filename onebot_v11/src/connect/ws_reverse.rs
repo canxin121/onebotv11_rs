@@ -1,15 +1,12 @@
 use crate::api::payload::ApiPayload;
 use crate::api::resp::{ApiResp, ApiRespBuilder};
-use crate::traits::EndPoint as _;
 use crate::Event;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{broadcast, mpsc, Mutex, RwLock};
+use tokio::sync::{broadcast, Mutex, RwLock};
 use tokio::time::timeout;
 use tokio_tungstenite::accept_hdr_async;
 use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
@@ -17,31 +14,7 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::WebSocketStream;
 use tracing::{info, warn};
 
-use super::WsType;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct WsApiPayload {
-    pub action: String,
-    pub params: Value,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub echo: Option<String>,
-}
-
-impl Into<String> for WsApiPayload {
-    fn into(self) -> String {
-        serde_json::to_string(&self).unwrap()
-    }
-}
-
-impl Into<WsApiPayload> for ApiPayload {
-    fn into(self) -> WsApiPayload {
-        WsApiPayload {
-            action: self.endpoint(),
-            params: serde_json::to_value(self).unwrap(),
-            echo: Some("123".to_string()),
-        }
-    }
-}
+use super::{get_resp_builder, WsApiPayload, WsType};
 
 pub struct ReverseWsConfig {
     pub host: String,
@@ -66,14 +39,13 @@ pub struct ReverseWsConnect {
     ws_read: Mutex<SplitStream<WebSocketStream<TcpStream>>>,
     ws_write: Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>,
     event_sender: broadcast::Sender<Event>,
-    api_response_sender: mpsc::Sender<ApiRespBuilder>,
-    api_response_receiver: Mutex<mpsc::Receiver<ApiRespBuilder>>,
+    api_response_sender: broadcast::Sender<ApiRespBuilder>,
 }
 
 impl ReverseWsConnect {
     pub async fn new(config: ReverseWsConfig) -> Result<Arc<Self>, anyhow::Error> {
         let ((ws_read, ws_write), bot_id, r#type) = Self::connect(&config).await?;
-        let (api_response_sender, api_response_receiver) = mpsc::channel(100);
+        let (api_response_sender, _) = broadcast::channel(100);
         let self_ = Arc::new(Self {
             config,
             r#type: RwLock::new(r#type),
@@ -82,7 +54,6 @@ impl ReverseWsConnect {
             ws_write: Mutex::new(ws_write),
             event_sender: broadcast::channel(100).0,
             api_response_sender,
-            api_response_receiver: Mutex::new(api_response_receiver),
         });
 
         self_.clone().start_event_listener();
@@ -176,7 +147,7 @@ impl ReverseWsConnect {
                                 Ok(event) => match event {
                                     Event::ApiRespBuilder(api_resp_builder) => {
                                         if let Err(e) =
-                                            self.api_response_sender.send(api_resp_builder).await
+                                            self.api_response_sender.send(api_resp_builder)
                                         {
                                             warn!("Error sending ApiRespBuilder: {}", e);
                                         }
@@ -220,17 +191,18 @@ impl ReverseWsConnect {
 
     pub async fn call_api(self: Arc<Self>, api_data: ApiPayload) -> Result<ApiResp, anyhow::Error> {
         let resp_type = api_data.to_resp_type();
-
+        let ws_api_data: WsApiPayload = api_data.into();
+        let echo = ws_api_data.echo.clone();
+        let ws_api_string: String = serde_json::to_string(&ws_api_data)?;
         {
-            let ws_api_data: WsApiPayload = api_data.into();
-            let ws_api_string: String = ws_api_data.into();
             let mut write = self.ws_write.lock().await;
             write.send(Message::Text(ws_api_string)).await?;
         }
+        let subscriber = self.api_response_sender.subscribe();
 
         let resp_builder = timeout(
             Duration::from_secs(30),
-            self.api_response_receiver.lock().await.recv(),
+            get_resp_builder(subscriber, echo)
         )
         .await
         .ok()
@@ -239,46 +211,5 @@ impl ReverseWsConnect {
             "[WsServer.call_api] Error receiving API response, maybe the API response channel is closed or timeout"
         ))?;
         Ok(resp_builder.build(resp_type)?)
-    }
-}
-
-#[cfg(test)]
-mod test_reverse_ws_connect {
-    use std::sync::Arc;
-
-    use crate::{
-        api::payload::{ApiPayload, SendGroupMsg},
-        connect::ws_reverse::ReverseWsConnect,
-        event::notice::Notice,
-        Event, MessageSegment,
-    };
-
-    #[tokio::test]
-    async fn test() {
-        tracing_subscriber::fmt::init();
-
-        let ws_conn = ReverseWsConnect::new(Default::default()).await.unwrap();
-        let mut subscriber = ws_conn.subscribe().await;
-
-        while let Ok(event) = subscriber.recv().await {
-            match event {
-                Event::Notice(Notice::GroupCardChange(event)) => {
-                    let ws_conn = Arc::clone(&ws_conn);
-                    tokio::spawn(async move {
-                        let _ = ws_conn
-                            .call_api(ApiPayload::SendGroupMsg(SendGroupMsg {
-                                group_id: event.group_id,
-                                message: vec![MessageSegment::text(format!(
-                                    "收到群名片变动消息: {:#?}",
-                                    event
-                                ))],
-                                auto_escape: true,
-                            }))
-                            .await;
-                    });
-                }
-                _ => {}
-            }
-        }
     }
 }

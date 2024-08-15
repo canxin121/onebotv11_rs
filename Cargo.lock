@@ -600,6 +600,7 @@ dependencies = [
  "anyhow",
  "futures-util",
  "onebot_v11_macro 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",
