@@ -41,6 +41,7 @@ async fn main() {
         host: "127.0.0.1".to_string(),
         port: 8080,
         suffix: "onebot/v11".to_string(),
+        ..Default::default()
     };
     // 从环境变量读取配置并覆盖
     if let Some(ws_host) = get_env_var_case_insensitive("HOST") {

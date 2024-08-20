@@ -1,5 +1,7 @@
+use reqwest::header::AUTHORIZATION;
 use std::sync::Arc;
 use tokio::sync::{broadcast, Mutex};
+use tokio_tungstenite::tungstenite::client::IntoClientRequest as _;
 use tracing::{info, warn};
 
 use futures_util::stream::{SplitSink, SplitStream};
@@ -82,15 +84,23 @@ impl WsConnect {
         );
         loop {
             let url = url.clone();
-            match connect_async(url).await {
+
+            // 创建带有 Authorization 头的请求
+            let mut request = url.into_client_request().unwrap();
+            if let Some(token) = config.access_token.clone() {
+                request
+                    .headers_mut()
+                    .insert(AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
+            }
+            match connect_async(request).await {
                 Ok((ws_stream, _)) => {
                     let (write, read) = ws_stream.split();
-                    info!("Connected to WebSocket server");
+                    info!("Connection succeed");
                     break (write, read);
                 }
                 Err(e) => {
                     warn!(
-                        "Error connecting to WebSocket server: {}, will retry in 3 seconds",
+                        "Connection failed, WebSocket server: {}, will retry in 3 seconds",
                         e
                     );
                 }

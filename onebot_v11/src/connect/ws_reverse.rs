@@ -3,6 +3,7 @@ use crate::api::resp::{ApiResp, ApiRespBuilder};
 use crate::Event;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt as _, StreamExt as _};
+use reqwest::header::AUTHORIZATION;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
@@ -20,6 +21,7 @@ pub struct ReverseWsConfig {
     pub host: String,
     pub port: u16,
     pub suffix: String,
+    pub access_token: Option<String>,
 }
 
 impl Default for ReverseWsConfig {
@@ -28,6 +30,7 @@ impl Default for ReverseWsConfig {
             host: "127.0.0.1".to_string(),
             port: 8080,
             suffix: "onebot/v11".to_string(),
+            access_token: None,
         }
     }
 }
@@ -83,11 +86,6 @@ impl ReverseWsConnect {
                 Ok((stream, _)) => {
                     match accept_hdr_async(stream, |req: &Request, mut resp: Response| {
                         let path = req.uri().path().trim_end_matches('/');
-                        info!(
-                            "[ReverseWsConnect::new] Accepting connection, path suffix: {}",
-                            path
-                        );
-
                         if !path.ends_with(&config.suffix) {
                             *resp.status_mut() = reqwest::StatusCode::NOT_FOUND;
                             return Ok(resp);
@@ -99,7 +97,28 @@ impl ReverseWsConnect {
                         r#type = headers
                             .get("X-Client-Role")
                             .map(|v| WsType::from_str(&v.to_str().unwrap_or("").to_string()));
-
+                        let bear_token = headers
+                            .get(AUTHORIZATION)
+                            .map(|v| v.to_str().unwrap_or("").to_string());
+                        tracing::info!(
+                            "Connection accecpting: bot_id: {:?}, type: {:?}, bear_token: {:?}",
+                            bot_id,
+                            r#type,
+                            bear_token
+                        );
+                        if bear_token
+                            != config
+                                .access_token
+                                .as_ref()
+                                .and_then(|s| Some(format!("Bearer {}", s)))
+                        {
+                            tracing::error!(
+                                "Connection failed: Unauthorized, bear_token: {:?}",
+                                bear_token
+                            );
+                            *resp.status_mut() = reqwest::StatusCode::UNAUTHORIZED;
+                            return Ok(resp);
+                        }
                         Ok(resp)
                     })
                     .await
@@ -108,24 +127,18 @@ impl ReverseWsConnect {
                             let (write, read) = ws_stream.split();
 
                             info!(
-                                "[ReverseWsConnect::connect] Connected, bot_id: {:?}, type: {:?}",
+                                "Connection succeed, bot_id: {:?}, type: {:?}",
                                 bot_id, r#type
                             );
                             return Ok(((read, write), bot_id, r#type));
                         }
                         Err(e) => {
-                            warn!(
-                                "[ReverseWsConnect::connect] Error accepting connection: {}",
-                                e
-                            );
+                            warn!("Connection failed: {}", e);
                         }
                     };
                 }
                 Err(e) => {
-                    warn!(
-                        "[ReverseWsConnect::connect] Error accepting connection: {}",
-                        e
-                    );
+                    warn!("Connection failed: {}", e);
                 }
             }
         }

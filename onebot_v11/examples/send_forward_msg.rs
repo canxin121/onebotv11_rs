@@ -9,6 +9,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
     let config = HttpConfig {
         port: 3000,
+        access_token: Some("abcdefg".to_string()),
         ..Default::default()
     };
     let http_conn = HttpConnect::new(config);
