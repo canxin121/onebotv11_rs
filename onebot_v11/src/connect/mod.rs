@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::broadcast;
 
+use crate::api::payload::ApiPayload;
 use crate::api::resp::ApiRespBuilder;
-use crate::{api::payload::ApiPayload, traits::EndPoint as _};
+use crate::traits::EndPoint;
 
 pub mod http;
 pub mod ws;

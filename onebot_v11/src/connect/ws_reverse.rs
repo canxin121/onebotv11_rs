@@ -101,7 +101,7 @@ impl ReverseWsConnect {
                             .get(AUTHORIZATION)
                             .map(|v| v.to_str().unwrap_or("").to_string());
                         tracing::info!(
-                            "Connection accecpting: bot_id: {:?}, type: {:?}, bear_token: {:?}",
+                            "Connection accepting: bot_id: {:?}, type: {:?}, bear_token: {:?}",
                             bot_id,
                             r#type,
                             bear_token

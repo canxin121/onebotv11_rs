@@ -51,11 +51,11 @@ pub struct WsConnect {
 }
 
 impl WsConnect {
-    pub async fn new(wsconfig: WsConfig) -> Result<Arc<Self>, anyhow::Error> {
-        let (ws_write, ws_read) = Self::connect(&wsconfig).await;
+    pub async fn new(ws_config: WsConfig) -> Result<Arc<Self>, anyhow::Error> {
+        let (ws_write, ws_read) = Self::connect(&ws_config).await;
         let (api_response_sender, _) = broadcast::channel(100);
         let self_ = Arc::new(Self {
-            config: wsconfig.clone(),
+            config: ws_config.clone(),
             ws_read: Mutex::new(ws_read),
             ws_write: Mutex::new(ws_write),
             event_sender: broadcast::channel(100).0,
