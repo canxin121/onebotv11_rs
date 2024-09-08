@@ -16,7 +16,7 @@ pub struct ApiResp {
 pub struct ApiRespBuilder {
     pub status: String,
     pub retcode: u32,
-    // ApiRespData，但是无法直接序列化，提供一个type_id
+    /// ApiRespData，但是无法直接序列化，提供一个`type_id`
     pub data: Value,
     #[serde(default)]
     pub echo: String,
@@ -60,32 +60,31 @@ pub enum ApiRespData {
     GetStatusResponse(GetStatusResponse),
     GetVersionInfoResponse(GetVersionInfoResponse),
     NoResponse(Option<()>),
-    // NapCat/llonebot扩展
 
-    // 获取群系统通知
+    // NapCat / llOneBot扩展
+    /// 获取群系统通知
     GetGroupSystemMsgResponse(GetGroupSystemMsgResponse),
-    // 下载群文件或私聊文件
+    /// 下载群文件或私聊文件
     GetFileResponse(GetFileResponse),
-    // 获取好友分类列表
+    /// 获取好友分类列表
     GetFriendsWithCategoryResponse(Vec<GetFriendsWithCategoryResponseItem>),
-    // 获取机器人QQ号范围
+    /// 获取机器人QQ号范围
     GetRobotUinRangeResponse(Vec<GetRobotUinRangeResponseItem>),
-    // 获取群文件数量
+    /// 获取群文件数量
     GetGroupFileCountResponse(GetGroupFileCountResponse),
-    // 获取群文件列表
+    /// 获取群文件列表
     GetGroupFileListResponse(GetGroupFileListResponse),
-    // 创建群文件夹
+    /// 创建群文件夹
     SetGroupFileFolderResponse(SetGroupFileFolderResponse),
-    // 删除群文件
+    /// 删除群文件
     DelGroupFileResponse(DelGroupFileResponse),
-    // 删除群文件夹
+    /// 删除群文件夹
     DelGroupFileFolderResponse(CommonClientResponseResult),
 
-    // NapCat Gocq 扩展
-
-    // 向群发送合并转发消息
+    // NapCat GoCq 扩展
+    /// 向群发送合并转发消息
     SendGroupForwardMsgResponse(SendGroupForwardMsgResponse),
-    // 向私聊发送合并转发消息
+    /// 向私聊发送合并转发消息
     SendPrivateForwardMsgResponse(SendPrivateForwardMsgResponse),
 }
 
@@ -119,7 +118,7 @@ impl Serialize for ApiRespData {
             ApiRespData::GetStatusResponse(data) => data.serialize(serializer),
             ApiRespData::GetVersionInfoResponse(data) => data.serialize(serializer),
             ApiRespData::NoResponse(data) => data.serialize(serializer),
-            // NapCat/llonebot扩展
+            // NapCat / llOneBot扩展
             ApiRespData::GetGroupSystemMsgResponse(data) => data.serialize(serializer),
             ApiRespData::GetFileResponse(data) => data.serialize(serializer),
             ApiRespData::GetFriendsWithCategoryResponse(data) => data.serialize(serializer),
@@ -129,7 +128,7 @@ impl Serialize for ApiRespData {
             ApiRespData::DelGroupFileFolderResponse(data) => data.serialize(serializer),
             ApiRespData::GetRobotUinRangeResponse(data) => data.serialize(serializer),
             ApiRespData::GetGroupFileCountResponse(data) => data.serialize(serializer),
-            // NapCat Gocq 扩展
+            // NapCat GoCq 扩展
             ApiRespData::SendGroupForwardMsgResponse(data) => data.serialize(serializer),
             ApiRespData::SendPrivateForwardMsgResponse(data) => data.serialize(serializer),
         }
@@ -460,55 +459,55 @@ pub struct GetVersionInfoResponse {
     pub protocol_version: String,
 }
 
-// NapCat/llonebot扩展
+// NapCat / llOneBot扩展
 
-// 获取群系统通知
+/// 获取群系统通知
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetGroupSystemMsgResponse {
-    // 入群邀请
+    /// 入群邀请
     #[serde(rename = "InvitedRequest")]
     pub invited_requests: Vec<InvitedRequest>,
-    // 被过滤的加群申请
+    /// 被过滤的加群申请
     pub join_requests: Vec<JoinRequest>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct InvitedRequest {
-    // 请求id
+    /// 请求id
     pub request_id: String,
-    // 邀请者uin
-    pub invitor_uin: i64,
-    // 邀请者昵称
-    pub invitor_nick: String,
-    // 群号
+    /// 邀请者uin
+    pub inviter_uin: i64,
+    /// 邀请者昵称
+    pub inviter_nick: String,
+    /// 群号
     pub group_id: i64,
-    // 群名称
+    /// 群名称
     pub group_name: String,
-    // 是否处理
+    /// 是否处理
     pub checked: bool,
-    // 0: 未处理 other: 处理者qq
+    /// 0: 未处理 other: 处理者qq
     pub actor: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct JoinRequest {
-    // 请求id
+    /// 请求id
     pub request_id: String,
-    // 请求者uin
+    /// 请求者uin
     pub requester_uin: i64,
-    // 请求者昵称
+    /// 请求者昵称
     pub requester_nick: String,
-    // 群号
+    /// 群号
     pub group_id: i64,
-    // 群名称
+    /// 群名称
     pub group_name: String,
-    // 是否处理
+    /// 是否处理
     pub checked: bool,
-    // 0: 未处理 other: 处理者qq
+    /// 0: 未处理 other: 处理者qq
     pub actor: i64,
 }
 
-// 下载群文件或私聊文件
+/// 下载群文件或私聊文件
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetFileResponse {
     pub file: String,
@@ -517,7 +516,7 @@ pub struct GetFileResponse {
     pub base64: String,
 }
 
-// 获取好友分类列表
+/// 获取好友分类列表
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetFriendsWithCategoryResponseItem {
     pub user_id: i64,
@@ -528,7 +527,7 @@ pub struct GetFriendsWithCategoryResponseItem {
     pub age: Option<i64>,
     pub qid: Option<String>,
     pub login_days: Option<i64>,
-    pub categroy_name: Option<String>,
+    pub category_name: Option<String>,
     pub category_id: Option<i64>,
 }
 
@@ -542,7 +541,7 @@ pub enum Sex {
     Unknown,
 }
 
-// 获取机器人QQ号范围
+/// 获取机器人QQ号范围
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetRobotUinRangeResponseItem {
     #[serde(rename = "maxUin")]
@@ -551,13 +550,14 @@ pub struct GetRobotUinRangeResponseItem {
     pub min_uin: String,
 }
 
-// 获取群文件数量
+/// 获取群文件数量
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetGroupFileCountResponse {
-    pub count: u64, // 文件数量
+    /// 文件数量
+    pub count: u64,
 }
 
-// 获取群文件列表
+/// 获取群文件列表
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct GetGroupFileListResponse {
     #[serde(rename = "FileList")]
@@ -648,7 +648,7 @@ pub struct FolderInfo {
     pub used_space: String,
 }
 
-// 创建群文件夹
+/// 创建群文件夹
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SetGroupFileFolderResponse {
     #[serde(rename = "groupItem")]
@@ -666,7 +666,7 @@ pub struct CommonClientResponseResult {
     pub ret_msg: String,
 }
 
-// 删除群文件
+/// 删除群文件
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DelGroupFileResponse {
     #[serde(rename = "errMsg")]
@@ -685,15 +685,15 @@ pub struct TransGroupFileResult {
     pub success_file_id_list: Vec<String>,
 }
 
-// NapCat Gocq 扩展
+// NapCat / GoCq 扩展
 
-// 向群发送合并转发消息
+/// 向群发送合并转发消息
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SendGroupForwardMsgResponse {
     pub message_id: i64,
 }
 
-// 向私聊发送合并转发消息
+/// 向私聊发送合并转发消息
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SendPrivateForwardMsgResponse {
     pub message_id: i64,

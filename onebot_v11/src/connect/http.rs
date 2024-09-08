@@ -37,7 +37,7 @@ pub struct HttpCallApiResp {
 #[derive(Debug)]
 pub enum HttpCallApiError {
     Unauthorized,
-    InvaildToken,
+    InvalidToken,
     ContentTypeNotSupported,
     InvalidRequestBody,
     ApiNotFound,
@@ -61,7 +61,7 @@ impl From<StatusCode> for HttpCallApiError {
     fn from(value: StatusCode) -> Self {
         match value {
             StatusCode::UNAUTHORIZED => HttpCallApiError::Unauthorized,
-            StatusCode::FORBIDDEN => HttpCallApiError::InvaildToken,
+            StatusCode::FORBIDDEN => HttpCallApiError::InvalidToken,
             StatusCode::NOT_ACCEPTABLE => HttpCallApiError::ContentTypeNotSupported,
             StatusCode::BAD_REQUEST => HttpCallApiError::InvalidRequestBody,
             StatusCode::NOT_FOUND => HttpCallApiError::ApiNotFound,
